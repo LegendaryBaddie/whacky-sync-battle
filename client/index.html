@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script src="https://npmcdn.com/babel-core@5.8.38/browser.min.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script type="text/babel" >
+    "use strict";
+    
+    let socket;
+    let canvas = document.getElementById('main');
+    let ctx = canvas.getContext('2d');
+    let button = {
+      xPos: 100,
+      yPos: 100
+    }
+    // code from stack overflow to get mouse pos
+    canvas.addEventListener('mouseup', (evt) =>{
+      let rect = canvas.getBoundingClientRect();
+      let mousePos = {
+        x: (evt.clientX - rect.left),
+        y: (evt.clientY - rect.top)
+      };
+      console.log(`${mousePos.x} , ${mousePos.y}`);
+      // check if mouse is within button x
+      if((mousePos.x > button.xPos) && (mousePos.x < (button.xPos + 200))){
+        // within button y
+        if((mousePos.y > button.yPos) && (mousePos.y < (button.yPos + 100))){
+          socket.emit('clicked');
+          console.log('clicked');
+        }
+      }
+    } , false);
+
+    const init = () => {
+      socket = io.connect();
+      // draw a line;
+      ctx.beginPath();
+      ctx.moveTo(0,500);
+      ctx.lineTo(800,500);
+      ctx.stroke();
+      
+      socket.on('restart', (data) =>{
+        ctx.fillStyle='#000000';      
+        ctx.clearRect(0,0,800,600);
+        button.xPos = data.pos.x;
+        button.yPos = data.pos.y;
+        ctx.strokeRect(button.xPos, button.yPos, 200, 100);
+        ctx.font="20px Arial";
+        ctx.fillText(data.text, 0, 520);
+      });
+      socket.on('update', (data) =>{
+        ctx.fillStyle='#000000';
+        ctx.clearRect(0,0,800,490);
+        button.xPos = data.pos.x;
+        button.yPos = data.pos.y;
+        ctx.strokeRect(button.xPos, button.yPos, 200, 100);
+
+        // update clicks
+        ctx.clearRect(0,550,800,650);
+        ctx.fillText(`Clicks ${data.count}`, 0, 570)
+      });
+      socket.on('msgUpdate', (data) =>{
+        ctx.fillStyle='#000000';
+        ctx.clearRect(0,490,800,570);
+        ctx.beginPath();
+        ctx.moveTo(0,500);
+        ctx.lineTo(800,500);
+        ctx.stroke();
+        ctx.font="20px Arial";
+        ctx.fillText(data, 0, 520);
+      });
+      socket.on('killButton', () => {
+      ctx.clearRect(0,0,800,500);
+      ctx.fillStyle='#FF0000';
+      ctx.fillRect(300,200,200,100);
+      button.posX=10000;
+      button.posY=10000;
+      });
+     
+    };
+    
+    window.onload = init;
+  </script>
+</head>
+<body>
+<canvas id='main' width='800' height='600'></canvas>
+</body>
+</html>
